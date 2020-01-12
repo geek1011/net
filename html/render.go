@@ -2,6 +2,8 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+// Modifications Copyright 2020 Patrick Gaskin.
+
 package html
 
 import (
@@ -10,6 +12,7 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"unicode/utf8"
 )
 
 // MOD(geek1011): Add render options
@@ -24,6 +27,72 @@ type renderOpts struct {
 
 // RenderOption configures a renderer.
 type RenderOption func(o *renderOpts)
+
+// RenderOptionAllowXMLDeclarations uncomments XML declarations which were
+// commented out during parsing. Note that this does not ensure the content is
+// valid XML (although if the content had an XML declaration to begin with, it
+// probably was and likely remain that way even after being re-rendered).
+func RenderOptionAllowXMLDeclarations(enabled bool) RenderOption {
+	return func(o *renderOpts) {
+		o.xmlDecl = enabled
+	}
+}
+
+// RenderOptionPolyglot produces HTML which is mostly valid XML/XHTML as well.
+//
+// The output will also be mostly XHTML 1.1 compatible if the source was XHTML
+// 1.1 or HTML4 and the RenderOptionAllowXMLDeclarations option is used.
+// Essentially, this option will keep the output document with as wide a
+// compatiblity compared to the source document as possible.
+//
+// The following characteristics are implemented by this option:
+// - Replacing literal NBSP characters with the &#160; escape. This is because
+//   quite a few parsers seem to trim literal NBSPs.
+// - Adding the xmlns attribute to the root element (note that this does not
+//   cause any issues when parsing as normal HTML5) (see
+//   https://stackoverflow.com/a/14564065).
+//
+// The following characteristics are already part of the Go renderer by default:
+// - Always including a value for boolean attributes (i.e. <input enabled="" />
+//   rather than <input enabled />).
+// - Always putting the self-closing / in void elements (i.e. <br /> rather than
+//   <br>). This is required for XML compatibility.
+// - All non-void elements will have a closing tag, even if they are empty. This
+//   is required for HTML compatibility (see ParseOptionLenientSelfClosing).
+// - Only escaping <>& using named escapes, everything else is as-is or
+//   uses numerical escapes (but see the note about NBSPs in the next section).
+// - Only using <!-- and --> for comments.
+// - Wrapping table contents in tbody if not already done (note that this is
+//   done in the parser as per the HTML5 spec, not the renderer).
+//
+// The following characteristics are NOT implemented by this option:
+// - CDATA escaping for scripts and stylesheets. This will cause parsing as
+//   strict XML to fail for embedded scripts with the characters <>&.
+// - Declaring encoding as UTF-8. XML is required to be UTF-8, and many HTML
+//   parsers will default to it anyways. Also, most source documents will
+//   already have it declared.
+// - The DOCTYPE will be left however it was in the source document. This
+//   doesn't usually have any effect in either direction for most recent parsers.
+// - xlink:href on links. This usually causes more issues than it solves, and
+//   all but the most strict XML parsers will work fine without it.
+//
+// Note that you will need to enable the RenderOptionAllowXMLDeclarations option
+// if using this to manipulate strict EPUB2 XHTML content for some readers to
+// parse it correctly (i.e. the Kobo KEPUB reader).
+//
+// Basically, as long as the source document is mostly correct HTML or XHTML
+// (see my parser mods for making the parsing more lenient about XMLisms), the
+// output will be parseable correctly as XML or HTML by most parsers.
+//
+// References:
+// - https://www.w3.org/TR/html-polyglot/
+// - https://html.spec.whatwg.org/multipage/parsing.html
+// - https://stackoverflow.com/a/39560454
+func RenderOptionPolyglot(enabled bool) RenderOption {
+	return func(o *renderOpts) {
+		o.polyglot = enabled
+	}
+}
 
 // RenderWithOptions is like Render, with options.
 func RenderWithOptions(w io.Writer, n *Node, opts ...RenderOption) error {
@@ -105,6 +174,27 @@ func render1(w writer, n *Node, o *renderOpts) error {
 	case ErrorNode:
 		return errors.New("html: cannot render an ErrorNode node")
 	case TextNode:
+		// MOD(geek1011): Escape NBSPs with &#160;.
+		if o.polyglot {
+			nbsp := rune('\u00a0') // note: the length is 2 (UTF-8 encoding is C2 A0)
+			i := strings.IndexRune(n.Data, nbsp)
+			if i != -1 {
+				c := utf8.RuneLen(nbsp)
+				s := n.Data
+				for i != -1 {
+					if err := escape(w, s[:i]); err != nil { // pass everything else to the normal escaper
+						return err
+					}
+					if _, err := w.WriteString("&#160;"); err != nil {
+						return err
+					}
+					s = s[i+c:]                    // skip the nbsp (note that a nbsp is 2 bytes long in UTF-8)
+					i = strings.IndexRune(s, nbsp) // find the next one
+				}
+				return escape(w, s) // pass on the rest
+			}
+		}
+		// END MOD
 		return escape(w, n.Data)
 	case DocumentNode:
 		for c := n.FirstChild; c != nil; c = c.NextSibling {
@@ -116,6 +206,23 @@ func render1(w writer, n *Node, o *renderOpts) error {
 	case ElementNode:
 		// No-op.
 	case CommentNode:
+		// MOD(geek1011): Preserve XML declarations. INSECURE against xml
+		//     injection. Note: The behaviour of treating XML declarations as
+		//     comments is in the tokenizer and standardized in section 12.2.2
+		//     (unexpected-question-mark-instead-of-tag-name).
+		if o.xmlDecl && strings.HasPrefix(n.Data, "?xml ") && strings.HasSuffix(n.Data, "?") {
+			if err := w.WriteByte('<'); err != nil {
+				return err
+			}
+			if _, err := w.WriteString(n.Data); err != nil {
+				return err
+			}
+			if err := w.WriteByte('>'); err != nil {
+				return err
+			}
+			return nil
+		}
+		// END MOD
 		if _, err := w.WriteString("<!--"); err != nil {
 			return err
 		}
@@ -179,6 +286,24 @@ func render1(w writer, n *Node, o *renderOpts) error {
 	if _, err := w.WriteString(n.Data); err != nil {
 		return err
 	}
+	// MOD(geek1011): Add html xmlns
+	if o.polyglot && strings.EqualFold(n.Data, "html") {
+		var hasXMLNS bool
+		for _, a := range n.Attr {
+			if strings.EqualFold(a.Key, "xmlns") {
+				hasXMLNS = true
+				break
+			}
+		}
+		if !hasXMLNS {
+			n.Attr = append(n.Attr, Attribute{
+				Key: "xmlns",
+				Val: "http://www.w3.org/1999/xhtml",
+			})
+			defer func() { n.Attr = n.Attr[:len(n.Attr)-1] }()
+		}
+	}
+	// END MOD
 	for _, a := range n.Attr {
 		if err := w.WriteByte(' '); err != nil {
 			return err
