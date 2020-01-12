@@ -48,37 +48,37 @@ func RenderOptionAllowXMLDeclarations(enabled bool) RenderOption {
 // compatiblity compared to the source document as possible.
 //
 // The following characteristics are implemented by this option:
-// - Replacing literal NBSP characters with the &#160; escape. This is because
-//   quite a few parsers seem to trim literal NBSPs.
-// - Adding the xmlns attribute to the root element (note that this does not
-//   cause any issues when parsing as normal HTML5) (see
-//   https://stackoverflow.com/a/14564065).
-// - Adding xmlns to math and svg elements.
+//     - Replacing literal NBSP characters with the &#160; escape. This is because
+//       quite a few parsers seem to trim literal NBSPs.
+//     - Adding the xmlns attribute to the root element (note that this does not
+//       cause any issues when parsing as normal HTML5) (see
+//       https://stackoverflow.com/a/14564065).
+//     - Adding xmlns to math and svg elements.
 //
 // The following characteristics are already part of the Go renderer by default:
-// - Always including a value for boolean attributes (i.e. <input enabled="" />
-//   rather than <input enabled />).
-// - Always putting the self-closing / in void elements (i.e. <br /> rather than
-//   <br>). This is required for XML compatibility.
-// - All non-void elements will have a closing tag, even if they are empty. This
-//   is required for HTML compatibility (see ParseOptionLenientSelfClosing).
-// - Only escaping <>& using named escapes, everything else is as-is or
-//   uses numerical escapes (but see the note about NBSPs in the next section).
-// - Only using <!-- and --> for comments.
-// - Wrapping table contents in tbody if not already done (note that this is
-//   done in the parser as per the HTML5 spec, not the renderer).
+//     - Always including a value for boolean attributes (i.e. <input enabled="" />
+//       rather than <input enabled />).
+//     - Always putting the self-closing / in void elements (i.e. <br /> rather than
+//       <br>). This is required for XML compatibility.
+//     - All non-void elements will have a closing tag, even if they are empty. This
+//       is required for HTML compatibility (see ParseOptionLenientSelfClosing).
+//     - Only escaping <>& using named escapes, everything else is as-is or
+//       uses numerical escapes (but see the note about NBSPs in the next section).
+//     - Only using <!-- and --> for comments.
+//     - Wrapping table contents in tbody if not already done (note that this is
+//       done in the parser as per the HTML5 spec, not the renderer).
 //
 // The following characteristics are NOT implemented by this option:
-// - CDATA escaping for scripts and stylesheets. This will cause parsing as
-//   strict XML to fail for embedded scripts with the characters <>&.
-// - Declaring encoding as UTF-8. XML is required to be UTF-8, and many HTML
-//   parsers will default to it anyways. Also, most source documents will
-//   already have it declared.
-// - The DOCTYPE will be left however it was in the source document. This
-//   doesn't usually have any effect in either direction for most recent parsers.
-// - xlink:href on links. This usually causes more issues than it solves, and
-//   all but the most strict XML parsers will work fine without it. Although,
-//   if it is already set, it will be preserved.
+//     - CDATA escaping for scripts and stylesheets. This will cause parsing as
+//       strict XML to fail for embedded scripts with the characters <>&.
+//     - Declaring encoding as UTF-8. XML is required to be UTF-8, and many HTML
+//       parsers will default to it anyways. Also, most source documents will
+//       already have it declared.
+//     - The DOCTYPE will be left however it was in the source document. This
+//       doesn't usually have any effect in either direction for most recent parsers.
+//     - xlink:href on links. This usually causes more issues than it solves, and
+//       all but the most strict XML parsers will work fine without it. Although,
+//       if it is already set, it will be preserved.
 //
 // Note that you will need to enable the RenderOptionAllowXMLDeclarations option
 // if using this to manipulate strict EPUB2 XHTML content for some readers to
@@ -89,9 +89,9 @@ func RenderOptionAllowXMLDeclarations(enabled bool) RenderOption {
 // output will be parseable correctly as XML or HTML by most parsers.
 //
 // References:
-// - https://www.w3.org/TR/html-polyglot/
-// - https://html.spec.whatwg.org/multipage/parsing.html
-// - https://stackoverflow.com/a/39560454
+//     - https://www.w3.org/TR/html-polyglot/
+//     - https://html.spec.whatwg.org/multipage/parsing.html
+//     - https://stackoverflow.com/a/39560454
 func RenderOptionPolyglot(enabled bool) RenderOption {
 	return func(o *renderOpts) {
 		o.polyglot = enabled
