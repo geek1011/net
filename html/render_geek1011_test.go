@@ -60,6 +60,19 @@ func TestMod_RenderPolyglot(t *testing.T) {
 	}.Test(t)
 
 	testModCase{
+		What:     `[mod] Add xmlns to math and svg`,
+		Original: `<!DOCTYPE html><html><head><title>Title</title></head><body><math></math><svg></svg></body></html>`,
+
+		ParseOptsA:  nil,
+		RenderOptsA: []RenderOption{RenderOptionPolyglot(false)},
+		RenderedA:   `<!DOCTYPE html><html><head><title>Title</title></head><body><math></math><svg></svg></body></html>`,
+
+		ParseOptsB:  nil,
+		RenderOptsB: []RenderOption{RenderOptionPolyglot(true)},
+		RenderedB:   `<!DOCTYPE html><html xmlns="http://www.w3.org/1999/xhtml"><head><title>Title</title></head><body><math xmlns="http://www.w3.org/1998/Math/MathML"></math><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"></svg></body></html>`,
+	}.Test(t)
+
+	testModCase{
 		What:     `[default] Value for boolean attributes`,
 		Original: `<!DOCTYPE html><html><head><title>Title</title></head><body><input type="text" enabled/></body></html>`,
 

@@ -13,6 +13,8 @@ import (
 	"io"
 	"strings"
 	"unicode/utf8"
+
+	a "golang.org/x/net/html/atom"
 )
 
 // MOD(geek1011): Add render options
@@ -51,6 +53,7 @@ func RenderOptionAllowXMLDeclarations(enabled bool) RenderOption {
 // - Adding the xmlns attribute to the root element (note that this does not
 //   cause any issues when parsing as normal HTML5) (see
 //   https://stackoverflow.com/a/14564065).
+// - Adding xmlns to math and svg elements.
 //
 // The following characteristics are already part of the Go renderer by default:
 // - Always including a value for boolean attributes (i.e. <input enabled="" />
@@ -74,7 +77,8 @@ func RenderOptionAllowXMLDeclarations(enabled bool) RenderOption {
 // - The DOCTYPE will be left however it was in the source document. This
 //   doesn't usually have any effect in either direction for most recent parsers.
 // - xlink:href on links. This usually causes more issues than it solves, and
-//   all but the most strict XML parsers will work fine without it.
+//   all but the most strict XML parsers will work fine without it. Although,
+//   if it is already set, it will be preserved.
 //
 // Note that you will need to enable the RenderOptionAllowXMLDeclarations option
 // if using this to manipulate strict EPUB2 XHTML content for some readers to
@@ -286,21 +290,31 @@ func render1(w writer, n *Node, o *renderOpts) error {
 	if _, err := w.WriteString(n.Data); err != nil {
 		return err
 	}
-	// MOD(geek1011): Add html xmlns
-	if o.polyglot && strings.EqualFold(n.Data, "html") {
-		var hasXMLNS bool
+	// MOD(geek1011): Add html, svg, math xmlns
+	// ensureAttr ensures an attribute is set on the current element, and
+	// returns a function to call to remove any attributes added temporarily.
+	ensureAttr := func(ns, key, defValue string) func() {
 		for _, a := range n.Attr {
-			if strings.EqualFold(a.Key, "xmlns") {
-				hasXMLNS = true
-				break
+			if (strings.EqualFold(a.Namespace, ns) && strings.EqualFold(a.Key, key)) || strings.EqualFold(a.Namespace, key) {
+				return func() {}
 			}
 		}
-		if !hasXMLNS {
-			n.Attr = append(n.Attr, Attribute{
-				Key: "xmlns",
-				Val: "http://www.w3.org/1999/xhtml",
-			})
-			defer func() { n.Attr = n.Attr[:len(n.Attr)-1] }()
+		n.Attr = append(n.Attr, Attribute{
+			Namespace: ns,
+			Key:       key,
+			Val:       defValue,
+		})
+		return func() { n.Attr = n.Attr[:len(n.Attr)-1] }
+	}
+	if o.polyglot {
+		switch n.DataAtom {
+		case a.Html:
+			defer ensureAttr("", "xmlns", "http://www.w3.org/1999/xhtml")()
+		case a.Svg:
+			defer ensureAttr("", "xmlns", "http://www.w3.org/2000/svg")()
+			defer ensureAttr("xmlns", "xlink", "http://www.w3.org/1999/xlink")()
+		case a.Math:
+			defer ensureAttr("", "xmlns", "http://www.w3.org/1998/Math/MathML")()
 		}
 	}
 	// END MOD
