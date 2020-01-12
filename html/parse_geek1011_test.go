@@ -188,6 +188,32 @@ func TestMod_ParseLenientSelfClosing(t *testing.T) {
 		RenderOptsB: nil,
 		RenderedB:   `<!DOCTYPE html><html><head><title>Title</title></head><body><p><i>Test &gt;&lt;<span id="test"></span>&gt;<b>&lt; 1<span>test</span></b></i></p><p><i><b>Test 2</b></i></p></body></html>`,
 	}.Test(t)
+
+	testModCase{
+		What:     `Self closing p in body (simple, the other funny cases are basically already tested through the other elements)`,
+		Original: `<!DOCTYPE html><html><head><title>Title</title></head><body><p>Test</p><span>Test</span><p/><span>Test</span><p>Test</p></body></html>`,
+
+		ParseOptsA:  []ParseOption{ParseOptionLenientSelfClosing(false)},
+		RenderOptsA: nil,
+		RenderedA:   `<!DOCTYPE html><html><head><title>Title</title></head><body><p>Test</p><span>Test</span><p><span>Test</span></p><p>Test</p></body></html>`,
+
+		ParseOptsB:  []ParseOption{ParseOptionLenientSelfClosing(true)},
+		RenderOptsB: nil,
+		RenderedB:   `<!DOCTYPE html><html><head><title>Title</title></head><body><p>Test</p><span>Test</span><p></p><span>Test</span><p>Test</p></body></html>`,
+	}.Test(t)
+
+	testModCase{
+		What:     `Self closing div in body (simple, the other funny cases are basically already tested through the other elements)`,
+		Original: `<!DOCTYPE html><html><head><title>Title</title></head><body><p>Test</p><span>Test</span><div/><span>Test</span><p>Test</p></body></html>`,
+
+		ParseOptsA:  []ParseOption{ParseOptionLenientSelfClosing(false)},
+		RenderOptsA: nil,
+		RenderedA:   `<!DOCTYPE html><html><head><title>Title</title></head><body><p>Test</p><span>Test</span><div><span>Test</span><p>Test</p></div></body></html>`,
+
+		ParseOptsB:  []ParseOption{ParseOptionLenientSelfClosing(true)},
+		RenderOptsB: nil,
+		RenderedB:   `<!DOCTYPE html><html><head><title>Title</title></head><body><p>Test</p><span>Test</span><div></div><span>Test</span><p>Test</p></body></html>`,
+	}.Test(t)
 }
 
 func TestMod_ParseIgnoreBOM(t *testing.T) {

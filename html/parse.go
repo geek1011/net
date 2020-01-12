@@ -943,6 +943,14 @@ func inBodyIM(p *parser) bool {
 		case a.Address, a.Article, a.Aside, a.Blockquote, a.Center, a.Details, a.Dialog, a.Dir, a.Div, a.Dl, a.Fieldset, a.Figcaption, a.Figure, a.Footer, a.Header, a.Hgroup, a.Main, a.Menu, a.Nav, a.Ol, a.P, a.Section, a.Summary, a.Ul:
 			p.popUntil(buttonScope, a.P)
 			p.addElement()
+			// MOD(geek1011): Allow div and p to be self-closing. See the mod above
+			//     for A elements for more details.
+			if p.lenientSelfClosing && (p.tok.DataAtom == a.P || p.tok.DataAtom == a.Div) && p.hasSelfClosingToken {
+				p.oe.pop()
+				p.acknowledgeSelfClosingTag()
+				break
+			}
+			// END MOD
 		case a.H1, a.H2, a.H3, a.H4, a.H5, a.H6:
 			p.popUntil(buttonScope, a.P)
 			switch n := p.top(); n.DataAtom {
