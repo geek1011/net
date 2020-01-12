@@ -54,6 +54,10 @@ func RenderOptionAllowXMLDeclarations(enabled bool) RenderOption {
 //       cause any issues when parsing as normal HTML5) (see
 //       https://stackoverflow.com/a/14564065).
 //     - Adding xmlns to math and svg elements.
+//     - Adding type="text/css" to style elements without a type,
+//       type="text/javascript" to script elements without a type (required for
+//       HTML4/XHTML1.1, default for HTML5) (note that a type isn't required on
+//       link elements).
 //
 // The following characteristics are already part of the Go renderer by default:
 //     - Always including a value for boolean attributes (i.e. <input enabled="" />
@@ -290,7 +294,7 @@ func render1(w writer, n *Node, o *renderOpts) error {
 	if _, err := w.WriteString(n.Data); err != nil {
 		return err
 	}
-	// MOD(geek1011): Add html, svg, math xmlns
+	// MOD(geek1011): Add html, svg, math xmlns and script, style type
 	// ensureAttr ensures an attribute is set on the current element, and
 	// returns a function to call to remove any attributes added temporarily.
 	ensureAttr := func(ns, key, defValue string) func() {
@@ -315,6 +319,10 @@ func render1(w writer, n *Node, o *renderOpts) error {
 			defer ensureAttr("xmlns", "xlink", "http://www.w3.org/1999/xlink")()
 		case a.Math:
 			defer ensureAttr("", "xmlns", "http://www.w3.org/1998/Math/MathML")()
+		case a.Script:
+			defer ensureAttr("", "type", "text/javascript")()
+		case a.Style:
+			defer ensureAttr("", "type", "text/css")()
 		}
 	}
 	// END MOD

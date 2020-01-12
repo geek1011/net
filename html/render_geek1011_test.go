@@ -73,6 +73,19 @@ func TestMod_RenderPolyglot(t *testing.T) {
 	}.Test(t)
 
 	testModCase{
+		What:     `[mod] Add type to script and style`,
+		Original: `<!DOCTYPE html><html><head><title>Title</title><style></style><script></script></head><body></body></html>`,
+
+		ParseOptsA:  nil,
+		RenderOptsA: []RenderOption{RenderOptionPolyglot(false)},
+		RenderedA:   `<!DOCTYPE html><html><head><title>Title</title><style></style><script></script></head><body></body></html>`,
+
+		ParseOptsB:  nil,
+		RenderOptsB: []RenderOption{RenderOptionPolyglot(true)},
+		RenderedB:   `<!DOCTYPE html><html xmlns="http://www.w3.org/1999/xhtml"><head><title>Title</title><style type="text/css"></style><script type="text/javascript"></script></head><body></body></html>`,
+	}.Test(t)
+
+	testModCase{
 		What:     `[default] Value for boolean attributes`,
 		Original: `<!DOCTYPE html><html><head><title>Title</title></head><body><input type="text" enabled/></body></html>`,
 
