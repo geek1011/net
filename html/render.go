@@ -17,7 +17,7 @@ import (
 	a "golang.org/x/net/html/atom"
 )
 
-// MOD(geek1011): Add render options
+// MOD(pgaskin): Add render options
 type renderOpts struct {
 	// xmlDecl uncomments XML declarations which were commented out during
 	// parsing.
@@ -182,7 +182,7 @@ func render1(w writer, n *Node, o *renderOpts) error {
 	case ErrorNode:
 		return errors.New("html: cannot render an ErrorNode node")
 	case TextNode:
-		// MOD(geek1011): Escape NBSPs with &#160;.
+		// MOD(pgaskin): Escape NBSPs with &#160;.
 		if o.polyglot {
 			nbsp := rune('\u00a0') // note: the length is 2 (UTF-8 encoding is C2 A0)
 			i := strings.IndexRune(n.Data, nbsp)
@@ -214,7 +214,7 @@ func render1(w writer, n *Node, o *renderOpts) error {
 	case ElementNode:
 		// No-op.
 	case CommentNode:
-		// MOD(geek1011): Preserve XML declarations. INSECURE against xml
+		// MOD(pgaskin): Preserve XML declarations. INSECURE against xml
 		//     injection. Note: The behaviour of treating XML declarations as
 		//     comments is in the tokenizer and standardized in section 12.2.2
 		//     (unexpected-question-mark-instead-of-tag-name).
@@ -297,7 +297,7 @@ func render1(w writer, n *Node, o *renderOpts) error {
 	if _, err := w.WriteString(n.Data); err != nil {
 		return err
 	}
-	// MOD(geek1011): Add html, svg, math xmlns and script, style type
+	// MOD(pgaskin): Add html, svg, math xmlns and script, style type
 	// ensureAttr ensures an attribute is set on the current element, and
 	// returns a function to call to remove any attributes added temporarily.
 	ensureAttr := func(ns, key, defValue string) func() {

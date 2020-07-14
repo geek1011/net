@@ -53,10 +53,10 @@ type parser struct {
 	context *Node
 	// lenientSelfClosing controls whether to allow additional non-void elements
 	// to be self closing (<whatever ... />). This is mainly for better
-	// compatibility with XHTML found in EPUBs. MOD(geek1011)
+	// compatibility with XHTML found in EPUBs. MOD(pgaskin)
 	lenientSelfClosing bool
 	// ignoreBOM skips the BOM at the beginning of the document, if present.
-	// MOD(geek1011)
+	// MOD(pgaskin)
 	ignoreBOM bool
 }
 
@@ -524,7 +524,7 @@ const whitespace = " \t\r\n\f"
 func initialIM(p *parser) bool {
 	switch p.tok.Type {
 	case TextToken:
-		// MOD(geek1011): Ignore BOM when considering initial data before document.
+		// MOD(pgaskin): Ignore BOM when considering initial data before document.
 		if p.ignoreBOM {
 			p.tok.Data = strings.TrimPrefix(p.tok.Data, "\xEF\xBB\xBF")
 		}
@@ -666,7 +666,7 @@ func inHeadIM(p *parser) bool {
 			p.tokenizer.NextIsNotRawText()
 			return true
 		case a.Script, a.Title:
-			// MOD(geek1011): Allow title to be self-closing. See the mod below
+			// MOD(pgaskin): Allow title to be self-closing. See the mod below
 			//     for A elements for more details. This is often found in XHTML
 			//     EPUBs, where generators don't add any text to the title tag
 			//     and use an XML renderer (which then self-closes it, which is
@@ -943,7 +943,7 @@ func inBodyIM(p *parser) bool {
 		case a.Address, a.Article, a.Aside, a.Blockquote, a.Center, a.Details, a.Dialog, a.Dir, a.Div, a.Dl, a.Fieldset, a.Figcaption, a.Figure, a.Footer, a.Header, a.Hgroup, a.Main, a.Menu, a.Nav, a.Ol, a.P, a.Section, a.Summary, a.Ul:
 			p.popUntil(buttonScope, a.P)
 			p.addElement()
-			// MOD(geek1011): Allow div and p to be self-closing. See the mod above
+			// MOD(pgaskin): Allow div and p to be self-closing. See the mod above
 			//     for A elements for more details.
 			if p.lenientSelfClosing && (p.tok.DataAtom == a.P || p.tok.DataAtom == a.Div) && p.hasSelfClosingToken {
 				p.oe.pop()
@@ -1027,7 +1027,7 @@ func inBodyIM(p *parser) bool {
 				}
 			}
 			p.reconstructActiveFormattingElements()
-			// MOD(geek1011): Allow A to be self-closing. THIS IS NOT SPEC-
+			// MOD(pgaskin): Allow A to be self-closing. THIS IS NOT SPEC-
 			//     COMPLIANT, but won't cause any issues in basically any real-
 			//     world case, as people don't go doing things like
 			//     `<a href="/whatever" />link text</a>` and expect it to work (
@@ -1170,7 +1170,7 @@ func inBodyIM(p *parser) bool {
 		case a.Caption, a.Col, a.Colgroup, a.Frame, a.Head, a.Tbody, a.Td, a.Tfoot, a.Th, a.Thead, a.Tr:
 			// Ignore the token.
 		default:
-			// MOD(geek1011): Allow span to be self-closing. See the mod above
+			// MOD(pgaskin): Allow span to be self-closing. See the mod above
 			//     for A elements for more details.
 			if p.lenientSelfClosing && p.tok.DataAtom == a.Span && p.hasSelfClosingToken {
 				p.addElement()
@@ -2419,7 +2419,7 @@ func ParseOptionEnableScripting(enable bool) ParseOption {
 
 // ParseOptionLenientSelfClosing controls whether to allow additional non-void
 // elements to be self closing (<whatever ... />). This is mainly for better
-// compatibility with XHTML found in EPUBs. MOD(geek1011)
+// compatibility with XHTML found in EPUBs. MOD(pgaskin)
 func ParseOptionLenientSelfClosing(enable bool) ParseOption {
 	return func(p *parser) {
 		p.lenientSelfClosing = enable
@@ -2430,7 +2430,7 @@ func ParseOptionLenientSelfClosing(enable bool) ParseOption {
 // the beginning of the document (technically, it makes the parser consider it
 // as whitespace). This option is mainly intended for use with with
 // RenderOptionAllowXMLDeclarations to prevent the XML declaration being moved
-// into the body element. MOD(geek1011)
+// into the body element. MOD(pgaskin)
 func ParseOptionIgnoreBOM(enable bool) ParseOption {
 	return func(p *parser) {
 		p.ignoreBOM = enable
